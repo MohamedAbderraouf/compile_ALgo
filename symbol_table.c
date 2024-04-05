@@ -67,6 +67,7 @@ int function_add_var(func_tab **fonction, char *nom_idf, TYPE_VAR type, int num_
         // Sinon, parcourir la liste jusqu'à la fin et ajouter le nouveau symbole
         ptr->ptr = new_var;
     }
+    return 0;
 }
 
 
