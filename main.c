@@ -101,3 +101,23 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
+
+//   \begin{algo}{puissancerec}{a,b}
+//     \IF{b=0}
+//       \RETURN{1}
+//     \ELSE
+//       \RETURN{a*\CALL{puissancerec}{a,b-1}}
+//     \FI 
+//   \end{algo}
+//   \begin{algo}{puissance}{a,b}
+//     \SET{p}{1}
+//     \DOFORI{k}{1}{b}
+//       \SET{p}{p*a}
+//     \OD
+//     \RETURN{p}
+//   \end{algo}
+//   \CALL{puissance}{2,3}
+//   \CALL{puissancerec}{2,3}
+//   \CALL{puissance}{1,3}
+//   \CALL{puissancerec}{3,3}
+

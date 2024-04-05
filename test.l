@@ -14,6 +14,15 @@
 "\\SET"         {return SET;}
 "\\INCR"        {return INCR;}
 "\\DECR"        {return DECR;}
+"\\OUT"         {return OUT}
+"\\CALL"        {return CALL;}
+"\\DOFORI"      {return DOFORI;}
+"\\OD"          {return OD;}
+"\\DOWHILE"     {return DOWHILE;}
+"\\RETURN"      {return RETURN;}
+"\\IF"          {return IF;}
+"\\ELSE"        {return ELSE;}
+"\\FI"          {return FI;}
 
 "," {return VIRGULE;}
 

@@ -29,7 +29,7 @@ void yyerror(const char* s){
 %token<entier> NUM
 %token<idf> IDF
 
-%token BEG END SET INCR DECR;
+%token BEG END SET INCR DECR OUT CALL DOFORI OD DOWHILE RETURN IF ELSE;
 %token OPEN_ACCO CLOSE_ACCO VIRGULE OPEN_PARENT CLOSE_PARENT;
 %token ADD SUB MULT DIV;
 %token DIF AND EGAL OR NOT TRUE FALSE;
@@ -45,57 +45,36 @@ void yyerror(const char* s){
 
 %%
 
-S : starting_point parameters code {};
+S :  ALGO ALGOLIST CALLS{};
 
-starting_point : BEG OPEN_ACCO IDF CLOSE_ACCO {ajouter_func($3,0,0,&liste);current_fct=recherche_func($3,liste);} ;
+ALGO : BEG COMMANDS END;
 
-parameters : OPEN_ACCO list_parameters CLOSE_ACCO {current_fct->nbr_params=param_number;};
+COMMANDS: COMMAND COMMANDS | COMMAND; 
 
-list_parameters:
-    | IDF {
-        ajouter(PARAM_VAR,$1,current_fct->nom_func,liste);
-        num(param_number);
-        param_number++;
-        printf(";%s\n",$1);}
-    | list_parameters VIRGULE IDF{
-        ajouter(PARAM_VAR,$3,current_fct->nom_func,liste);
-        num(param_number);
-        param_number++;
-        printf(";%s\n",$3);};
+COMMAND : SET_COMMAND | INCR_COMMAND | DECR_COMMAND 
+    | OUT_COMMAND | DOFORI_COMMAND | DOWHILE_COMMAND
+    | RETURN_COMMAND |IF_COMMAND;
 
-/* list_parameters: 
-    | VIRGULE IDF list_parameters{ajouter(PARAM_VAR,$2,liste);num(param_number);param_number++;printf(";%s\n",$2);}; */
+SET_COMMAND    : SET OPEN_ACCO IDF CLOSE_ACCO CALL OPEN_ACCO EXPR CLOSE_ACCO;
+INCR_COMMAND   : INCR OPEN_ACCO IDF CLOSE_ACCO;
+DECR_COMMAND   : DECR OPEN_ACCO IDF CLOSE_ACCO;
+OUT_COMMAND    : OUT OPEN_ACCO EXPR CLOSE_ACCO;
+DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO COMMANDS OD;
+DOWHILE_COMMAND: DOWHILE OPEN_ACCO CONDITION  CLOSE_ACCO COMMANDS OD
+RETURN_COMMAND : RETURN OPEN_ACCO
 
-code: //rien
-    | SET OPEN_ACCO IDF CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO code{
-        // if(recherche($3,liste) ==  NULL){
-        //     ajouter(LOCAL_VAR,$3,"main",liste);
-        //     printf(";ajouter %s",$3);
-        // }
-        print_param($3,current_fct->table);
 
-        affect_from_top_stack($3,liste->table);
-        print_param($3,current_fct->table);
+ALGOLIST : ALGO ALGOLIST {}    
+    | {};
 
-    }
-    |INCR OPEN_ACCO IDF CLOSE_ACCO code
-    {
-        if(recherche($3,current_fct->table) ==  NULL){
-            fprintf(stderr,"La variable \"%s\" n'existe pas\n",$3);
-            exit(EXIT_FAILURE);
-        }
 
-        increment($3,current_fct->table);
-        print_param($3,current_fct->table);
-    };
-    |DECR OPEN_ACCO IDF CLOSE_ACCO code
-    {
-        if(recherche($3,current_fct->table) ==  NULL){
-            fprintf(stderr,"La variable \"%s\" n'existe pas\n",$3);
-            exit(EXIT_FAILURE);
-        }
-        decrement($3,current_fct->table);
-    };
+CALLS : CALLS CALL_FUNC {}
+    | CALL_FUNC;
+
+CALL_FUNC: CALL OPEN_ACCO IDF CLOSE_ACCO CALL OPEN_ACCO PARAMS CLOSE_ACCO; 
+PARAMS : EXPR {}
+    | EXPR VIRGULE PARAMS;
+
 
 EXPR: EXPR ADD EXPR{
     if(test_expr_int($1,$3) == ERR_T){
