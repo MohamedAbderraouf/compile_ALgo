@@ -88,6 +88,7 @@ EXPR: EXPR ADD EXPR{}
     | EXPR OR EXPR {}
     | EXPR DIF EXPR {}
     | EXPR EGAL EXPR {}
+    | NOT EXPR {}
 
     | OPEN_PARENT EXPR CLOSE_PARENT{}
     | NUM {};

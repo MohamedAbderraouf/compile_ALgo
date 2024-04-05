@@ -1,5 +1,5 @@
 %{
-#include "functions.h"
+#include "symbol_table.h"
 #include "test.tab.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -14,7 +14,7 @@
 "\\SET"         {return SET;}
 "\\INCR"        {return INCR;}
 "\\DECR"        {return DECR;}
-"\\OUT"         {return OUT}
+"\\OUT"         {return OUT;}
 "\\CALL"        {return CALL;}
 "\\DOFORI"      {return DOFORI;}
 "\\OD"          {return OD;}
@@ -51,6 +51,6 @@
 [0-9]+ {yylval.entier=atoi(yytext);return NUM;}
 
 [a-zA-Z]+ {yylval.idf=strdup(yytext);return IDF;}
-
+[[:blank:]] {}
 . {printf("erreur de token,%s non reconnu\n",yytext);}
 %%
