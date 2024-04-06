@@ -16,6 +16,12 @@ typedef enum {
     ERR_T
 } TYPE_SYNTH;
 
+typedef enum {
+    FALSE_E,
+    TRUE_E
+} boolean_t;
+
+
 typedef struct func_sym
 {
     char* nom_func;
