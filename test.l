@@ -1,5 +1,6 @@
 %{
 #include "symbol_table.h"
+#include "ast.h"
 #include "test.tab.h"
 #include<stdio.h>
 #include<stdlib.h>
