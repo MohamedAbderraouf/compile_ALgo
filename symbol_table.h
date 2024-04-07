@@ -13,6 +13,7 @@ typedef enum {
 typedef enum {
     NUM_T,
     BOOL_T,
+    NOT_INITIALIZED,
     ERR_T
 } TYPE_SYNTH;
 
@@ -35,6 +36,7 @@ typedef struct sym
 {
     char *nom_idf;
     TYPE_VAR type;
+    TYPE_SYNTH type_synth;
     int num_var;
     struct sym *ptr;
 } sym_tab;
@@ -83,7 +85,7 @@ int hlist_add_function(functions_hash_list **ts , char* nom_func , int nbr_param
  * 
  * @return Un pointeur vers la fonction correspondant au nom et au nombre de paramètres spécifiés, ou NULL si la fonction n'est pas trouvée.
  */
-func_tab* hlist_get_function(functions_hash_list *ts , char* nom_func , int nbr_params);
+func_tab* hlist_get_function(functions_hash_list *ts ,const char* nom_func);
 
 /**
  * @brief Ajoute une variable à la table des symboles d'une fonction.
@@ -141,5 +143,8 @@ void free_func_table(func_tab* table);
  */
 void free_hash_lists(functions_hash_list* hash_lists);
 
+
+
+int element_exists(sym_tab *head, char *nom_idf) ;
 
 #endif

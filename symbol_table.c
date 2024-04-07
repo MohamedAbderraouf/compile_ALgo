@@ -4,6 +4,24 @@
 #include "symbol_table.h"
 
 
+
+int element_exists(sym_tab *head, char *nom_idf) {
+    sym_tab *current = head;
+
+    // Traverse the linked list
+    while (current != NULL) {
+        // If the current node's nom_idf matches the target nom_idf, return true
+        if (strcmp(current->nom_idf, nom_idf) == 0) {
+            return 1;
+        }
+        // Move to the next node
+        current = current->ptr;
+    }
+    // If the element is not found, return false
+    return 0;
+}
+
+
 sym_tab* function_get_var(func_tab *fonction, char *nom_idf) {
     // Vérifier si la fonction est valide
     if (fonction == NULL) {
@@ -56,6 +74,7 @@ int function_add_var(func_tab **fonction, char *nom_idf, TYPE_VAR type, int num_
 
     // Remplir les détails du symbole
     new_var->type = type;
+    new_var->type_synth = NOT_INITIALIZED;
     new_var->num_var = num_var;
     new_var->ptr = NULL; // Le nouveau symbole est ajouté à la fin de la liste
 
@@ -69,11 +88,6 @@ int function_add_var(func_tab **fonction, char *nom_idf, TYPE_VAR type, int num_
     }
     return 0;
 }
-
-
-
-
-
 
 
 
@@ -95,7 +109,7 @@ void hlist_init(functions_hash_list **ts){
 }
 
 
-unsigned int hash_function(char* key) {
+unsigned int hash_function(const char* key) {
     unsigned int hash = 1;
     int len = strlen(key);
 
@@ -151,7 +165,7 @@ int hlist_add_function(functions_hash_list **ts, char* nom_func, int nbr_params,
 }
 
 
-func_tab* hlist_get_function(functions_hash_list *ts , char* nom_func , int nbr_params){
+func_tab* hlist_get_function(functions_hash_list *ts ,const char* nom_func){
     // found || not found
     int status = -1;
 
@@ -164,7 +178,7 @@ func_tab* hlist_get_function(functions_hash_list *ts , char* nom_func , int nbr_
 
     while (add_ptr != NULL){
         // if cette condition est vrai alors il exist un duplicata
-        if(add_ptr->nbr_params == nbr_params && strcmp(add_ptr->nom_func , nom_func) == 0){
+        if(strcmp(add_ptr->nom_func , nom_func) == 0){
             status = 0;
             break;
         }    
