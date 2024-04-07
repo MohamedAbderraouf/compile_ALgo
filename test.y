@@ -1,6 +1,6 @@
 %{
-#include "ast.h"
 #include "symbol_table.h"
+#include "ast.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +9,10 @@ extern FILE* yyin;
 
 pile_parsing_t* pile ;
 pile_parsing_t* head ;
+char current_function_name[50];
+functions_hash_list *ts;
+func_tab* tmp_func_tab;
+int count_params ;
 
 int param_number,local_number;
 int label_number = 0;
@@ -51,26 +55,75 @@ void yyerror(const char* s){
 
 %%
 
-S :  ALGO ALGOLIST CALLS_TRANSITION{printf("S\n");push_pile_parsing(pile , "" , nt_S);};
+S :  ALGO ALGOLIST CALLS_TRANSITION
+    {
+        printf("S\n");
+        push_pile_parsing(pile , "" , nt_S);
+    }
 
-ALGO : BEG OPEN_ACCO IDF CLOSE_ACCO OPEN_ACCO IDFS_TRANSITION CLOSE_ACCO COMMANDS_TRANSITION END 
-       {printf("ALGO %s \n",$3); pile = push_pile_parsing(pile , $3 , nt_ALGO);
- };
+ALGO_DECRLARATION : BEG OPEN_ACCO IDF CLOSE_ACCO
+    {   
+        count_params = 0;
+        strcpy(current_function_name , $3);
+        hlist_add_function(&ts , $3 ,0 ,0);
+    };
+CONTINUATION_ALGO : OPEN_ACCO IDFS_TRANSITION CLOSE_ACCO COMMANDS_TRANSITION END
 
-ALGOLIST : {printf("ALGOLIST\n");pile = push_pile_parsing(pile , "" , nt_ALGOLIST);} 
-        |ALGO ALGOLIST {printf("ALGOLIST\n");pile = push_pile_parsing(pile , "" , nt_ALGOLIST);}    
+ALGO : ALGO_DECRLARATION CONTINUATION_ALGO  
+    {
+        printf("ALGO current : %s \n",tmp_func_tab->nom_func);
+        pile = push_pile_parsing(pile , tmp_func_tab->nom_func , nt_ALGO);
+    }
+ALGOLIST : 
+    {
+        printf("ALGOLIST\n");
+        pile = push_pile_parsing(pile , "" , nt_ALGOLIST);
+    } 
+| ALGO ALGOLIST 
+    {
+        printf("ALGOLIST\n");
+        pile = push_pile_parsing(pile , "" , nt_ALGOLIST);
+    }    
+
+// cette continuation pour s'assurer que la fonction soit declarer 
 
 
 IDFS_TRANSITION : IDFS 
-{printf("IDFS OF PARAMS OF\n");
-pile = push_pile_parsing(pile , "" , nt_ALL_IDF_PARAM_FUNCTION);}
+    {
+        printf("IDFS OF PARAMS OF\n");
+        pile = push_pile_parsing(pile , "" , nt_ALL_IDF_PARAM_FUNCTION);
+    }
+
 /* idfs params de fonction */
 IDFS : IDF VIRGULE IDFS 
-{printf("IDFS %s\n" , $1);pile = push_pile_parsing(pile , $1 , t_IDF_PARAM_FUNCTION);}
-     | IDF {printf("IDFS LAST %s\n" , $1);pile = push_pile_parsing(pile , $1 , t_IDF_PARAM_FUNCTION);}
+    {
+        printf("IDFS %s\n" , $1);
+        pile = push_pile_parsing(pile , $1 , t_IDF_PARAM_FUNCTION);
+        tmp_func_tab = hlist_get_function(ts , current_function_name );
+        tmp_func_tab->nbr_params++;
+        //ajout de la variable
+        function_add_var(&tmp_func_tab , $1 , PARAM_VAR , count_params++ );
+
+    }
+    | IDF 
+    {
+        printf("IDFS LAST %s\n" , $1);
+        pile = push_pile_parsing(pile , $1 , t_IDF_PARAM_FUNCTION);
+        tmp_func_tab = hlist_get_function(ts , current_function_name );
+        if (tmp_func_tab == NULL) {
+            printf("cant find Function\n" );
+        }
+        tmp_func_tab->nbr_params++;
+        //ajout de la variable
+        function_add_var(&tmp_func_tab , $1 , PARAM_VAR , count_params++ );
+        count_params = 0;
+    }
 
 COMMANDS_TRANSITION : COMMANDS 
-{printf("FIN DES COMMANDS\n");pile = push_pile_parsing(pile , "" , nt_ALL_COMMANDS);} 
+    {
+        printf("FIN DES COMMANDS\n");
+        pile = push_pile_parsing(pile , "" , nt_ALL_COMMANDS);
+    } 
 COMMANDS: COMMAND COMMANDS {printf("COMMAND\n");pile = push_pile_parsing(pile , "" , nt_COMMAND);} 
 | COMMAND {printf("NOT LAST COMMAND\n");pile = push_pile_parsing(pile , "" , nt_COMMAND);} 
 
@@ -79,63 +132,264 @@ COMMAND : SET_COMMAND | INCR_COMMAND | DECR_COMMAND
     | RETURN_COMMAND | IF_COMMAND;
 
 /*######################## COMMANDS ####################################*/
-
+// declarations de la variable 
+// i ajout dans la liste de variable de la fonction courant
 SET_COMMAND    : SET OPEN_ACCO IDF CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO 
-{printf("SET %s \n",$3); pile = push_pile_parsing(pile , $3 , nt_SET_COMMAND);}
+    {
+        printf("SET %s \n",$3); pile = push_pile_parsing(pile , $3 , nt_SET_COMMAND);
+        
+        if(element_exists(tmp_func_tab->table , $3)==0){
+            function_add_var(&tmp_func_tab , $3 , LOCAL_VAR , count_params++ );
+        }
+        tmp_func_tab = hlist_get_function(ts , current_function_name );
+        if (tmp_func_tab == NULL) {
+            printf("cant find Function\n" );
+        }
+        
+        sym_tab* sym =  function_get_var(tmp_func_tab,$3);
+        if (sym == NULL) {
+            printf("cant find Variable %s\n" , $3);
+            exit(EXIT_FAILURE);
+        }
+
+        sym->type_synth = $6;
+
+    }
 
 INCR_COMMAND   : INCR OPEN_ACCO IDF CLOSE_ACCO 
-{printf("INCR %s \n",$3);pile = push_pile_parsing(pile , $3 , nt_INCR_COMMAND);}
+    {   
+        if(element_exists(tmp_func_tab->table , $3)==0){
+            fprintf(stderr,"%s not inialized and used in \\INCR ",$3);
+            exit(EXIT_FAILURE);
+        }
+        printf("INCR %s \n",$3);
+        pile = push_pile_parsing(pile , $3 , nt_INCR_COMMAND);
+    }
 
 DECR_COMMAND   : DECR OPEN_ACCO IDF CLOSE_ACCO 
-{printf("DECR %s \n",$3);pile = push_pile_parsing(pile , $3 , nt_DECR_COMMAND);}
+    {
+        if(element_exists(tmp_func_tab->table , $3)==0){
+            fprintf(stderr,"%s not inialized and used in \\INCR ",$3);
+            exit(EXIT_FAILURE);
+        }
+        printf("DECR %s \n",$3);
+        pile = push_pile_parsing(pile , $3 , nt_DECR_COMMAND);
+    }
 
 OUT_COMMAND    : OUT OPEN_ACCO EXPR CLOSE_ACCO 
-{printf("OUT \n");pile = push_pile_parsing(pile , "" , nt_OUT_COMMAND);}
+    {  
+        printf("OUT \n");
+        pile = push_pile_parsing(pile , "" , nt_OUT_COMMAND);
+    }
 
-DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION OD 
-{printf("DOFORI%s \n",$3);pile = push_pile_parsing(pile , $3 , nt_DOFORI_COMMAND);}
+// separation pour la detection de l'idf avant de rantree dans les commands 
+CONTINUATION_DOFORI : OPEN_ACCO EXPR CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION OD
+DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO CONTINUATION_DOFORI  
+    {
+        printf("DOFORI%s \n",$3);
+        pile = push_pile_parsing(pile , $3 , nt_DOFORI_COMMAND);
+    }
+
 
 DOWHILE_COMMAND: DOWHILE OPEN_ACCO EXPR  CLOSE_ACCO COMMANDS_TRANSITION OD 
-{printf("DOWHILE\n");pile = push_pile_parsing(pile , "" , nt_DOWHILE_COMMAND);}
+    {
+        printf("DOWHILE\n");
+        pile = push_pile_parsing(pile , "" , nt_DOWHILE_COMMAND);
+    }
 
 RETURN_COMMAND : RETURN OPEN_ACCO EXPR CLOSE_ACCO 
-{printf("RETURN\n");pile = push_pile_parsing(pile , "" , nt_RETURN_COMMAND);}
+    {
+        printf("RETURN\n");
+        pile = push_pile_parsing(pile , "" , nt_RETURN_COMMAND);
+    }
 
-IF_COMMAND     : IF OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION FI 
-{printf("IF \n");pile = push_pile_parsing(pile , "" , nt_IF_COMMAND);}
+IF_COMMAND : IF OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION FI 
+    {
+        printf("IF \n");
+        pile = push_pile_parsing(pile , "" , nt_IF_COMMAND);
+    }
 | IF OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION ELSE  COMMANDS_TRANSITION FI 
-{printf("IF WITH ELSE\n");pile = push_pile_parsing(pile , "" , nt_IF_ELSE_COMMAND);}
+    {
+        printf("IF WITH ELSE\n");
+        pile = push_pile_parsing(pile , "" , nt_IF_ELSE_COMMAND);
+    }
 
-CALLS_TRANSITION : CALLS {pile = push_pile_parsing(pile , "" ,nt_ALL_CALLS );}
+CALLS_TRANSITION : CALLS 
+    {
+        pile = push_pile_parsing(pile , "" ,nt_ALL_CALLS );
+    }
+
 CALLS : CALL_FUNC CALLS
-{printf("NOT LAST FUNC call\n");}
-    | CALL_FUNC 
-{printf("LAST FUNC call\n");}
+    {
+        printf("NOT LAST FUNC call\n");
+    }
+|CALL_FUNC 
+    {
+        printf("LAST FUNC call\n");
+    }
 
 CALL_FUNC: CALL OPEN_ACCO IDF CLOSE_ACCO OPEN_ACCO PARAMS_TRANSITION CLOSE_ACCO 
-{printf("CALL FUNC %s\n", $3); pile = push_pile_parsing(pile , $3 , nt_CALL_FUNC);} 
+    {
+
+        printf("CALL FUNC %s\n", $3);
+        pile = push_pile_parsing(pile , $3 , nt_CALL_FUNC);
+    } 
 
 
-PARAMS_TRANSITION : PARAMS {pile = push_pile_parsing(pile , "" , nt_ALL_PARAMS);}
-PARAMS : EXPR {pile = push_pile_parsing(pile , "" , nt_PARAMS);}
-    | EXPR VIRGULE PARAMS{pile = push_pile_parsing(pile , "" , nt_PARAMS);}
+PARAMS_TRANSITION : PARAMS 
+    {
+        pile = push_pile_parsing(pile , "" , nt_ALL_PARAMS);
+    }
+PARAMS : EXPR 
+    {
+        pile = push_pile_parsing(pile , "" , nt_PARAMS);
+    }
+    | EXPR VIRGULE PARAMS
+    {
+        pile = push_pile_parsing(pile , "" , nt_PARAMS);
+    }
 
+/*#################### EXPR ############################*/
 
-EXPR: EXPR ADD EXPR{printf("ADD\n");pile = push_pile_parsing(pile , "" , t_ADD);}
-    | EXPR SUB EXPR {printf("sub\n");pile = push_pile_parsing(pile , "" , t_SUB);}
-    | EXPR MULT EXPR {printf("Mul\n");pile = push_pile_parsing(pile , "" , t_MULT);}
-    | EXPR DIV EXPR {printf("div\n");pile = push_pile_parsing(pile , "" , t_DIV);}
-    | EXPR AND EXPR {printf("and\n");pile = push_pile_parsing(pile , "" , t_AND);}
-    | EXPR OR EXPR {printf("or\n");pile = push_pile_parsing(pile , "" , t_OR);}
-    | EXPR DIF EXPR {printf("dif\n");pile = push_pile_parsing(pile , "" , t_DIF);}
-    | EXPR EGAL EXPR {printf("eq\n");pile = push_pile_parsing(pile , "" , t_EGAL);}
-    | NOT EXPR {printf("not\n");pile = push_pile_parsing(pile , "" , t_NOT);}
+EXPR: EXPR ADD EXPR
+    {   
+        if($1 != NUM_T || $3 != NUM_T ){
+            $$=ERR_T;
+            printf("ERROR: Adition only for ints\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=NUM_T;
+        printf("ADD\n");
+        pile = push_pile_parsing(pile , "" , t_ADD);
+    }
+| EXPR SUB EXPR 
+    {
+        if($1 != NUM_T || $3 != NUM_T ){
+            $$=ERR_T;
+            printf("ERROR: Substraction only for ints\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=NUM_T;
+        printf("sub\n");
+        pile = push_pile_parsing(pile , "" , t_SUB);
+    }
+| EXPR MULT EXPR 
+    {
+        if($1 != NUM_T || $3 != NUM_T ){
+            $$=ERR_T;
+            printf("ERROR: Multiplication only for ints\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=NUM_T;
+        printf("Mul\n");
+        pile = push_pile_parsing(pile , "" , t_MULT);
+    }
+    | EXPR DIV EXPR 
+    {
+        if($1 != NUM_T || $3 != NUM_T ){
+            $$=ERR_T;
+            printf("ERROR: Division only for ints\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=NUM_T;
+        printf("div\n");
+        pile = push_pile_parsing(pile , "" , t_DIV);
+    }
+    | EXPR AND EXPR 
+    {
+        if($1 != BOOL_T || $3 != BOOL_T ){
+            $$=ERR_T;
+            printf("ERROR: AND only for BOOL\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=BOOL_T;
+        printf("and\n");
+        pile = push_pile_parsing(pile , "" , t_AND);
+    }
+    | EXPR OR EXPR 
+    {
+        if($1 != BOOL_T || $3 != BOOL_T ){
+            $$=ERR_T;
+            printf("ERROR: OR only for BOOL\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=BOOL_T;
+        printf("or\n");
+        pile = push_pile_parsing(pile , "" , t_OR);
+    }
+    | EXPR DIF EXPR 
+    {
+        if($1 != $3 || $3 == ERR_T || $1 == ERR_T ){
+            $$=ERR_T;
+            printf("ERROR: cant compare bool with int\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=BOOL_T;
+        printf("dif\n");
+        pile = push_pile_parsing(pile , "" , t_DIF);
+    }
+    | EXPR EGAL EXPR 
+    {
+        if($1 != $3 || $3 == ERR_T || $1 == ERR_T ){
+            $$=ERR_T;
+            printf("ERROR: cant compare bool with int\n");
+            exit(EXIT_FAILURE);
+        }
+        $$=BOOL_T;
+        printf("eq\n");
+        pile = push_pile_parsing(pile , "" , t_EGAL);
+    }
+    | NOT EXPR 
+    {
+        if($2 != BOOL_T){
+            printf("ERROR: Not operation only for bools\n");
+            exit(EXIT_FAILURE);
+            $$=ERR_T;
+        }
+        $$=BOOL_T;
+        printf("not\n");
+        pile = push_pile_parsing(pile , "" , t_NOT);
+    }
 
-    | OPEN_PARENT EXPR CLOSE_PARENT{}
-    | NUM {printf("%d\n" , $1);pile = push_pile_parsing(pile , int_to_string($1) , t_NUM);}
-    | FALSE {printf("%d\n" , $1);pile = push_pile_parsing(pile , int_to_string((int)$1) , t_FALSE);}
-    | TRUE {printf("%d\n" , $1);pile = push_pile_parsing(pile , int_to_string((int)$1) , t_TRUE);}
-    | IDF {printf("EXPR %s\n" , $1);pile = push_pile_parsing(pile , $1 , t_IDF);}
+    | OPEN_PARENT EXPR CLOSE_PARENT
+    {
+        $$=$2;
+    }
+    | NUM 
+        {
+            $$=NUM_T;
+            printf("%d\n" , $1);
+            pile = push_pile_parsing(pile , int_to_string($1) , t_NUM);
+        }
+    | FALSE 
+    {
+        $$=BOOL_T;
+        printf("%d\n" , $1);
+        pile = push_pile_parsing(pile , int_to_string((int)$1) , t_FALSE);
+    }
+    | TRUE 
+    {   
+        $$=BOOL_T;
+        printf("%d\n" , $1);
+        pile = push_pile_parsing(pile , int_to_string((int)$1) , t_TRUE);
+    }
+    | IDF 
+    {   
+        tmp_func_tab = hlist_get_function(ts , current_function_name );
+        if (tmp_func_tab == NULL) {
+            printf("cant find Function\n" );
+        }
+        
+        sym_tab* sym =  function_get_var(tmp_func_tab,$1);
+        if (sym == NULL) {
+            printf("cant find Variable %s\n" , $1);
+            exit(EXIT_FAILURE);
+        }
+
+        $$ = sym->type_synth;
+        printf("EXPR %s\n" , $1);
+        pile = push_pile_parsing(pile , $1 , t_IDF);
+    }
     | CALL_FUNC {}
 %%
 
@@ -153,6 +407,10 @@ char* int_to_string(int num) {
 
 int main(void) {
 
+    // hash list table des symboles 
+    ts = NULL;
+    hlist_init(&ts);
+
 
     pile = init_pile_parsing();
     head = pile;
@@ -168,6 +426,9 @@ int main(void) {
     /* pile = pop_pile_parsing(pile);
     printf("Element : id = %s, noeud = %d\n", pile->id, pile->noeud); */
 
+    
+    free_hash_lists(ts);
+    
     return 0;
 }
 
