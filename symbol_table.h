@@ -147,4 +147,39 @@ void free_hash_lists(functions_hash_list* hash_lists);
 
 int element_exists(sym_tab *head, char *nom_idf) ;
 
+
+
+//////////////////////////////////// stack for intermediate code generation
+
+// Définition de la structure de nœud
+typedef struct Node {
+    char *data;
+    struct Node* next;
+} Node;
+
+// Structure de pile
+typedef struct Stack {
+    Node* top;
+} Stack;
+
+// Fonction pour initialiser la pile
+void initializeStack(Stack *stack);
+
+// Fonction pour vérifier si la pile est vide
+int isEmpty(Stack *stack);
+
+// Fonction pour pousser un élément sur la pile
+void push(Stack *stack, char *data);
+
+// Fonction pour retirer un élément de la pile
+char* pop(Stack *stack);
+
+// Fonction pour afficher le sommet de la pile
+char* peek(Stack *stack);
+
+
+void print_functions_hash_list(functions_hash_list *hash_list);
+
+
+
 #endif

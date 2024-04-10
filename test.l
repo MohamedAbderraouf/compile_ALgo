@@ -46,6 +46,11 @@
 "||" {return OR;}
 "!"  {return NOT;}
 
+">" {return SUP;}
+"<" {return INF;}
+">=" {return SUP_EGAL;}
+"<=" {return INF_EGAL;}
+
 "true" {return TRUE;}
 "false" {return FALSE;}
 

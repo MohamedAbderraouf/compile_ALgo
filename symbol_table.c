@@ -221,3 +221,100 @@ void free_hash_lists(functions_hash_list* hash_lists) {
 
 
 
+// #################################################################
+// ################ Pile tmp code inter - ##########################
+// Fonction pour créer un nouveau nœud
+Node* createNode(char *data) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        printf("Erreur: Échec de l'allocation de mémoire\n");
+        exit(1);
+    }
+    newNode->data = strdup(data);
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Fonction pour initialiser la pile
+void initializeStack(Stack *stack) {
+    stack->top = NULL;
+}
+
+// Fonction pour vérifier si la pile est vide
+int isEmpty(Stack *stack) {
+    return (stack->top == NULL);
+}
+
+// Fonction pour pousser un élément sur la pile
+void push(Stack *stack, char *data) {
+    Node* newNode = createNode(data);
+    newNode->next = stack->top;
+    stack->top = newNode;
+}
+
+// Fonction pour retirer un élément de la pile
+char* pop(Stack *stack) {
+    if (isEmpty(stack)) {
+        printf("Erreur: La pile est vide\n");
+        exit(1);
+    }
+    Node* temp = stack->top;
+    char *data = temp->data;
+    stack->top = stack->top->next;
+    free(temp);
+    return data;
+}
+
+// Fonction pour afficher le sommet de la pile
+char* peek(Stack *stack) {
+    if (isEmpty(stack)) {
+        printf("Erreur: La pile est vide\n");
+        exit(1);
+    }
+    return stack->top->data;
+}
+
+
+
+
+
+
+// debuge function for symbol table :
+// Function to print a sym_tab
+void print_sym(sym_tab *sym) {
+    printf("Symbol Name: %s\n", sym->nom_idf);
+    printf("Type: %d\n", sym->type);
+    printf("Synthetic Type: %d\n", sym->type_synth);
+    printf("Variable Number: %d\n", sym->num_var);
+}
+
+// Function to print a func_tab
+void print_func(func_tab *func) {
+    printf("Function Name: %s\n", func->nom_func);
+    printf("Number of Parameters: %d\n", func->nbr_params);
+    printf("Number of Locals: %d\n", func->nbr_locals);
+    printf("Symbol Table:\n");
+    sym_tab *current = func->table;
+    while(current != NULL) {
+        print_sym(current);
+        current = current->ptr;
+    }
+}
+
+// Function to print a functions_hash_list
+void print_functions_hash_list(functions_hash_list *hash_list) {
+    printf("Functions Hash List:\n");
+    for(int i = 0; i < HASH_SIZE; i++) {
+        printf("Bucket %d:\n", i);
+        func_tab *current = hash_list->hash_list[i];
+        while(current != NULL) {
+            print_func(current);
+            current = current->ptr;
+        }
+    }
+}
+
+
+
+
+

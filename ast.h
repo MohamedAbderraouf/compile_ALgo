@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include "symbol_table.h"
 
 
 #ifndef AST_H
@@ -33,6 +34,7 @@ typedef enum {
     ,nt_ALL_PARAMS
     ,nt_PARAMS
     ,nt_EXPR
+    ,nt_END_FUNCTIONS
 
     ,t_IDF_PARAM_FUNCTION
     ,t_IDF
@@ -44,6 +46,10 @@ typedef enum {
     ,t_OR
     ,t_DIF
     ,t_EGAL
+    ,t_INF
+    ,t_SUP
+    ,t_SUP_EGAL
+    ,t_INF_EGAL
     ,t_NOT
     ,t_NUM
     ,t_FALSE
@@ -72,11 +78,35 @@ pile_parsing_t* init_pile_parsing();
 pile_parsing_t* push_pile_parsing(pile_parsing_t* p , const char *id , noeud_t noeud);
 pile_parsing_t* pop_pile_parsing(pile_parsing_t* p);
 void parcourir_pile(pile_parsing_t* p);
-
+int make_asm(pile_parsing_t** p,functions_hash_list *ts);
 
 
 // debuging tools 
 const char* get_node_name(noeud_t noeud) ;
+
+
+void start();
+void main_function();
+void functioncall(const char *name , functions_hash_list *ts);
+void end();
+void add();
+void sub();
+void division();
+void mul();
+void or();
+void and();
+void not();
+void num(int number);
+
+void true_key_word();
+void false_key_word();
+
+
+void return_function();
+void set_command(functions_hash_list *ts  , char *varname , char *function_name);
+void idf(functions_hash_list *ts  , char *varname , char *function_name );
+
+
 
 
 

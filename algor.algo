@@ -1,19 +1,5 @@
-\begin{algo}{puissancerec}{a,b}
-\IF{b==0}
-    \RETURN{1}
-\ELSE
-    \RETURN{a*\CALL{puissancerec}{a,b-1}}
-\FI 
-\end{algo}
-
-\begin{algo}{puissance}{a,b}
-\SET{p}{1}
-\DOFORI{k}{1}{b}
-    \SET{p}{p*a}
-\OD
-\RETURN{p}
-\end{algo}
-
-\CALL{puissancerec}{2,3}
-\CALL{puissance}{2,3}
-
+  \begin{algo}{puissance}{a,b}
+    \SET{O}{222+2}
+    \RETURN{2+a*b+O}
+  \end{algo}
+  \CALL{puissance}{1,3}
