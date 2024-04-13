@@ -1,4 +1,6 @@
+make clean
 make
-./test > expr.asm
-# asipro expr.asm expr 2> err.asipro.log
-# sipro expr
+./test < algor.algo > test.asm
+asipro test.asm test
+sipro test
+

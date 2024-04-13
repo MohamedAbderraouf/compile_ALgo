@@ -24,17 +24,29 @@ typedef enum {
     ,nt_INCR_COMMAND
     ,nt_DECR_COMMAND
     ,nt_OUT_COMMAND
-    ,nt_DOFORI_COMMAND
-    ,nt_DOWHILE_COMMAND
     ,nt_RETURN_COMMAND
-    ,nt_IF_COMMAND
-    ,nt_IF_ELSE_COMMAND
     ,nt_ALL_CALLS
     ,nt_CALL_FUNC
     ,nt_ALL_PARAMS
     ,nt_PARAMS
     ,nt_EXPR
     ,nt_END_FUNCTIONS
+
+    ,nt_START_IF_COMMAND
+    ,nt_IF_COMMAND
+
+    ,nt_ELSE_DETECTION
+    ,nt_IF_ELSE_COMMAND
+    ,nt_START_IF_ELSE_COMMAND
+    // else detection
+
+    ,nt_START_DOWHILE_COMMAND
+    ,nt_DOWHILE_COMMAND
+    ,nt_END_DOWHILE_COMMAND
+
+    ,nt_DOFORI_COMMAND
+    ,nt_BEGIN_DOFORI_COMMAND
+    ,nt_END_DOFORI_COMMAND
 
     ,t_IDF_PARAM_FUNCTION
     ,t_IDF
@@ -105,6 +117,31 @@ void false_key_word();
 void return_function();
 void set_command(functions_hash_list *ts  , char *varname , char *function_name);
 void idf(functions_hash_list *ts  , char *varname , char *function_name );
+
+void increment(functions_hash_list *ts  , char *varname , char *function_name);
+
+void decrement(functions_hash_list *ts  , char *varname , char *function_name);
+
+void equal(int eq_label_number);
+void lessthen(int eq_label_number);
+void supthen(int eq_label_number);
+void different(int diff_label_number);
+void supthenOrEqual(int eq_label_number);
+void lessthenOrEqual(int eq_label_number);
+
+
+void out_command();
+
+void end_if(int nbrif);
+void else_detection(int nbrif);
+void if_detection(int nbrif);
+void end_if_else(int nbrif);
+
+
+void start_while(int nbr_while);
+void end_while(int nbr_while);
+void end_expr_while(int nbr_while);
+
 
 
 

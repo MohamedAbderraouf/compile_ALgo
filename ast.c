@@ -58,11 +58,10 @@ void parcourir_pile(pile_parsing_t* p) {
 int make_asm(pile_parsing_t** p,functions_hash_list *ts){
 
 //    int comparison_counter = 0; // pour le etiquete de == <= < > >= !=
-    
+    int etique =0;
     char function_name_current[50];
-    // function trace
-    Stack stack;
-    initializeStack(&stack); 
+
+
     /////////////////////////
     pile_parsing_t* current_p = *p;
 
@@ -91,7 +90,7 @@ int make_asm(pile_parsing_t** p,functions_hash_list *ts){
             case t_AND:
                 and();break;
             case t_OR:
-                or();break;
+                or(etique++);break;
             case t_FALSE:
                 false_key_word();break;
             case t_TRUE:
@@ -101,20 +100,35 @@ int make_asm(pile_parsing_t** p,functions_hash_list *ts){
             // here is the problem
             case t_IDF:
                 idf(ts , current_p->id , function_name_current);
-                 break;
+                break;
             case t_INF:
+                lessthen(etique++);
                 break;
             case t_INF_EGAL:
+                lessthenOrEqual(etique++);
                 break;
             case t_SUP:
+                supthen(etique++);
                 break;
             case t_SUP_EGAL:
+                supthenOrEqual(etique++);
                 break;
             case t_EGAL:
+                equal(etique++);
                 break;
             case t_DIF:
+                different(etique++);
                 break;
 
+            
+            
+            case nt_INCR_COMMAND:
+                increment(ts , current_p->id , function_name_current);
+                break;
+            case nt_DECR_COMMAND:
+                decrement(ts , current_p->id , function_name_current);
+                break;
+          
             case nt_CALL_FUNC:
                 functioncall(current_p->id,ts);
                 break;
@@ -127,8 +141,50 @@ int make_asm(pile_parsing_t** p,functions_hash_list *ts){
             case nt_END_FUNCTIONS:
                 main_function();
                 break;
+            case nt_OUT_COMMAND:
+                out_command();
+                break;
+            
             case nt_S:
                 end();
+                break;
+
+            case nt_START_IF_COMMAND:
+                if_detection(atoi(current_p->id));
+                break;
+            
+            case nt_IF_COMMAND:
+                end_if(atoi(current_p->id));
+                break;
+
+            case nt_ELSE_DETECTION:
+                else_detection(atoi(current_p->id));
+                break;
+            case nt_IF_ELSE_COMMAND:
+                end_if_else(atoi(current_p->id));
+                break;
+
+
+            case nt_DOWHILE_COMMAND:
+                end_while(atoi(current_p->id));
+                break;
+
+            case nt_START_DOWHILE_COMMAND:
+                start_while(atoi(current_p->id));
+                break;
+
+            case nt_END_DOWHILE_COMMAND:
+                end_expr_while(atoi(current_p->id));
+                break;
+
+            case nt_DOFORI_COMMAND:
+                // add functions
+                break;
+            case nt_BEGIN_DOFORI_COMMAND:
+                break;
+            case nt_END_DOFORI_COMMAND:
+                break;
+
 
             // ignore command 
             default:
@@ -151,6 +207,230 @@ int get_place_param_in_stack(int nbr_in_function , int count_locals){
 int get_place_local_in_stack(int nrb_local_in_function){
     return nrb_local_in_function*2  ;
 }
+
+char* create_label(char* label_name, int number){
+    char* buffer = (char*)malloc(128 * sizeof(char));
+    if(buffer == NULL){
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    if(snprintf(buffer,128,"%s%d",label_name,number) == -1){
+        perror("snprintf");
+        exit(EXIT_FAILURE);
+    }
+    return buffer;
+}
+
+void start_while(int nbr_while){
+    printf(":start_while_%d\n",nbr_while);
+
+}
+void end_while(int nbr_while){
+    
+    printf("\tconst dx,start_while_%d\n",nbr_while);
+    printf("\tjmp dx\n");
+    printf(":end_while_%d\n",nbr_while);
+}
+void end_expr_while(int nbr_while){
+    
+    printf("\tconst dx,end_while_%d\n",nbr_while);
+    printf("\tpop ax\n");
+    printf("\tconst bx,0\n");
+    printf("\tcmp ax,bx\n");
+    printf("\tjmpc dx\n");
+
+}
+
+
+// nt_START_IF_COMMAND
+void if_detection(int nbrif){
+    
+    printf("\tconst dx,fin_if_%d\n",nbrif);
+    printf("\tpop ax\n");
+    printf("\tconst bx,0\n");
+    printf("\tcmp ax,bx\n");
+    printf("\tjmpc dx\n");
+
+}
+// nt_IF_COMMAND detect end of if
+void end_if(int nbrif){
+        printf(":fin_if_%d\n",nbrif);
+}
+void end_if_else(int nbrif){
+        printf(":fin_if_else_%d\n",nbrif);
+}
+
+void else_detection(int nbrif){
+    printf("\tconst dx,fin_if_else_%d\n",nbrif);
+    printf("\tjmp dx\n");
+    printf(":fin_if_%d\n",nbrif);
+}
+
+
+
+
+
+
+void out_command(){
+    printf(";printing top of stack\n");
+    printf("\tcp ax,sp\n");
+    printf("\tcallprintfd ax\n");
+    printf("\tconst ax,nl\n");
+    printf("\tcallprintfs ax\n");
+    printf("\tpop ax\n");
+}
+
+
+void equal(int eq_label_number){
+    char *etiq = create_label("etiq_eq_", eq_label_number);
+    char *next = create_label("next_eq_", eq_label_number);
+    
+    printf("\tpop bx\n");
+    printf("\tpop ax\n");
+
+    printf("\tconst cx,%s\n", etiq);
+    //eq_label_number++;
+    printf("\tcmp ax,bx\n");
+    printf("\tjmpc cx\n");
+
+    printf("\tconst ax,0\n");
+    printf("\tpush ax\n");
+    printf("\tconst dx,%s\n", next);
+
+    printf("\tjmp dx\n");
+
+    printf(":%s\n", etiq);
+    printf("\tconst ax,1\n");
+    printf("\tpush ax\n");
+
+    printf(":%s\n", next);
+}
+
+void different(int diff_label_number){
+    char *etiq = create_label("etiq_dif_", diff_label_number);
+    char *next = create_label("next_dif_", diff_label_number);
+    
+    printf(";different check\n");
+    printf("\tpop bx\n");
+    printf("\tpop ax\n");
+
+    printf("\tconst cx,%s\n", etiq);
+    //dif_label_number++;
+    printf("\tcmp ax,bx\n");
+    printf("\tjmpc cx\n");
+
+    printf("\tconst ax,1\n");
+    printf("\tpush ax\n");
+    printf("\tconst dx,%s\n", next);
+
+    printf("\tjmp dx\n");
+
+    printf(":%s\n", etiq);
+    printf("\tconst ax,0\n");
+    printf("\tpush ax\n");
+
+    printf(":%s\n", next);
+}
+
+void lessthen(int eq_label_number){
+    char *etiq = create_label("etiq_eq_", eq_label_number);
+    char *next = create_label("next_eq_", eq_label_number);
+    
+    printf("\tpop bx\n");
+    printf("\tpop ax\n");
+
+    printf("\tconst cx,%s\n", etiq);
+    //eq_label_number++;
+    printf("\tsless ax,bx\n");
+    printf("\tjmpc cx\n");
+
+    printf("\tconst ax,0\n");
+    printf("\tpush ax\n");
+    printf("\tconst dx,%s\n", next);
+
+    printf("\tjmp dx\n");
+
+    printf(":%s\n", etiq);
+    printf("\tconst ax,1\n");
+    printf("\tpush ax\n");
+
+    printf(":%s\n", next);
+}
+
+void supthenOrEqual(int eq_label_number){
+    char *etiq = create_label("etiq_eq_", eq_label_number);
+    char *next = create_label("next_eq_", eq_label_number);
+    
+    printf("\tpop bx\n");
+    printf("\tpop ax\n");
+
+    printf("\tconst cx,%s\n", etiq);
+    //eq_label_number++;
+    printf("\tsless ax,bx\n");
+    printf("\tjmpc cx\n");
+
+    printf("\tconst ax,1\n");
+    printf("\tpush ax\n");
+    printf("\tconst dx,%s\n", next);
+
+    printf("\tjmp dx\n");
+
+    printf(":%s\n", etiq);
+    printf("\tconst ax,0\n");
+    printf("\tpush ax\n");
+
+    printf(":%s\n", next);
+}
+
+void lessthenOrEqual(int eq_label_number){
+    char *etiq = create_label("etiq_eq_", eq_label_number);
+    char *next = create_label("next_eq_", eq_label_number);
+    
+    printf("\tpop ax\n");
+    printf("\tpop bx\n");
+
+    printf("\tconst cx,%s\n", etiq);
+    //eq_label_number++;
+    printf("\tsless ax,bx\n");
+    printf("\tjmpc cx\n");
+
+    printf("\tconst ax,1\n");
+    printf("\tpush ax\n");
+    printf("\tconst dx,%s\n", next);
+
+    printf("\tjmp dx\n");
+
+    printf(":%s\n", etiq);
+    printf("\tconst ax,0\n");
+    printf("\tpush ax\n");
+
+    printf(":%s\n", next);
+}
+void supthen(int eq_label_number){
+    char *etiq = create_label("etiq_eq_", eq_label_number);
+    char *next = create_label("next_eq_", eq_label_number);
+    
+    printf("\tpop ax\n");
+    printf("\tpop bx\n");
+
+    printf("\tconst cx,%s\n", etiq);
+    //eq_label_number++;
+    printf("\tsless ax,bx\n");
+    printf("\tjmpc cx\n");
+
+    printf("\tconst ax,0\n");
+    printf("\tpush ax\n");
+    printf("\tconst dx,%s\n", next);
+
+    printf("\tjmp dx\n");
+
+    printf(":%s\n", etiq);
+    printf("\tconst ax,1\n");
+    printf("\tpush ax\n");
+
+    printf(":%s\n", next);
+}
+
 
 void return_function(functions_hash_list *ts  , char *function_name ){
 
@@ -280,6 +560,78 @@ void end(){
 }
 
 
+void increment(functions_hash_list *ts  , char *varname , char *function_name){
+int position;
+    func_tab *tmp = hlist_get_function(ts,function_name);
+    if (tmp == NULL){
+        printf("Erreur : function %s not found\n",function_name);
+        exit(EXIT_FAILURE);
+    }
+    
+    sym_tab *tmp_sym = function_get_var(tmp,varname);
+    
+    if (tmp_sym->type == LOCAL_VAR){
+        position = get_place_local_in_stack(tmp_sym->num_var);
+    }
+    else if (tmp_sym->type == PARAM_VAR){
+        position = get_place_param_in_stack(tmp_sym->num_var , tmp->nbr_locals);
+    }
+    
+    printf(";incrementation instruction\n");
+    printf(";loading var\n");
+    printf("\tcp bx,bp\n");
+    printf("\tconst cx,%d\n",position);
+    printf("\tsub bx,cx\n");
+    printf("\tloadw ax,bx\n");
+    
+    printf("\tconst dx,1\n");
+    printf("\tadd ax,dx\n");
+
+    printf(";storing var\n");
+    printf("\tcp bx,bp\n");
+    printf("\tconst cx,%d\n",position);
+    printf("\tsub bx,cx\n");
+    printf("\tstorew ax,bx\n");
+
+}
+
+void decrement(functions_hash_list *ts  , char *varname , char *function_name){
+int position;
+    func_tab *tmp = hlist_get_function(ts,function_name);
+    if (tmp == NULL){
+        printf("Erreur : function %s not found\n",function_name);
+        exit(EXIT_FAILURE);
+    }
+    
+    sym_tab *tmp_sym = function_get_var(tmp,varname);
+    
+    if (tmp_sym->type == LOCAL_VAR){
+        position = get_place_local_in_stack(tmp_sym->num_var);
+    }
+    else if (tmp_sym->type == PARAM_VAR){
+        position = get_place_param_in_stack(tmp_sym->num_var , tmp->nbr_locals);
+    }
+    
+    printf(";incrementation instruction\n");
+    printf(";loading var\n");
+    printf("\tcp bx,bp\n");
+    printf("\tconst cx,%d\n",position);
+    printf("\tsub bx,cx\n");
+    printf("\tloadw ax,bx\n");
+    
+    printf("\tconst dx,1\n");
+    printf("\tsub ax,dx\n");
+
+    printf(";storing var\n");
+    printf("\tcp bx,bp\n");
+    printf("\tconst cx,%d\n",position);
+    printf("\tsub bx,cx\n");
+    printf("\tstorew ax,bx\n");
+
+}
+
+
+
 void functioncall(const char *name , functions_hash_list *ts ){
     printf(";calling %s function\n",name);
     
@@ -360,6 +712,8 @@ void mul(){
 }
 
 
+
+
 void division(){
     printf("\tpop bx\n");
     printf("\tpop ax\n");
@@ -371,11 +725,22 @@ void division(){
     printf("\tpush ax\n");
 }
 
-void or(){
-    printf("\tpop bx\n");
+void or(int countOu){
+
     printf("\tpop ax\n");
-    printf("\tor ax,bx\n");
+    printf("\tpop bx\n");
+    printf("\tadd ax,bx\n");
+    printf("\tconst cx,or_yes_jump_%d\n",countOu);
+    printf("\tconst bx,0\n");
+    printf("\tcmp ax,bx\n");
+    printf("\tjmpc cx\n");
+    printf("\tconst ax,1\n");
     printf("\tpush ax\n");
+    printf("\tconst ax,or_no_jump%d\n",countOu);
+    printf("\tjmp ax\n");
+    printf(":or_yes_jump_%d\n",countOu);    
+    printf("\tpush ax\n");
+    printf(":or_no_jump%d\n",countOu);
 }
 
 void and(){
@@ -441,6 +806,10 @@ const char* get_node_name(noeud_t noeud) {
             return "nt_RETURN_COMMAND";
         case nt_IF_COMMAND:
             return "nt_IF_COMMAND";
+        case nt_ELSE_DETECTION:
+            return "nt_ELSE_DETECTION";
+        case nt_START_IF_COMMAND:
+            return "nt_START_IF_COMMAND";
         case nt_IF_ELSE_COMMAND:
             return "nt_IF_ELSE_COMMAND";
         case nt_ALL_CALLS:
@@ -479,6 +848,7 @@ const char* get_node_name(noeud_t noeud) {
             return "t_INF_EGAL";
         case t_SUP:
             return "t_SUP";
+
         case t_SUP_EGAL:
             return "t_SUP_EGAL";
         case t_NOT:
@@ -491,6 +861,14 @@ const char* get_node_name(noeud_t noeud) {
             return "t_TRUE";
         case nt_END_FUNCTIONS:
             return "nt_END_FUNCT";
+        case nt_START_IF_ELSE_COMMAND:
+            return "nt_START_IF_ELSE_COMMAND";
+            case nt_START_DOWHILE_COMMAND:
+            return "nt_START_DOWHILE_COMMAND";
+         
+    case nt_END_DOWHILE_COMMAND:
+        return "nt_END_DOWHILE_COMMAND";
+
         default:
             return "Unknown node";
     }

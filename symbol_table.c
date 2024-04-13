@@ -224,58 +224,46 @@ void free_hash_lists(functions_hash_list* hash_lists) {
 // #################################################################
 // ################ Pile tmp code inter - ##########################
 // Fonction pour créer un nouveau nœud
-Node* createNode(char *data) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    if (newNode == NULL) {
-        printf("Erreur: Échec de l'allocation de mémoire\n");
-        exit(1);
-    }
-    newNode->data = strdup(data);
-    newNode->next = NULL;
-    return newNode;
+
+void initialize(Stack *stack) {
+    stack->top = -1;
 }
 
-// Fonction pour initialiser la pile
-void initializeStack(Stack *stack) {
-    stack->top = NULL;
+int isFull(Stack *stack) {
+    return stack->top == MAX_SIZE - 1?1:0;
 }
 
-// Fonction pour vérifier si la pile est vide
 int isEmpty(Stack *stack) {
-    return (stack->top == NULL);
+    return stack->top == -1?1:0;
 }
 
-// Fonction pour pousser un élément sur la pile
-void push(Stack *stack, char *data) {
-    Node* newNode = createNode(data);
-    newNode->next = stack->top;
-    stack->top = newNode;
-}
-
-// Fonction pour retirer un élément de la pile
-char* pop(Stack *stack) {
-    if (isEmpty(stack)) {
-        printf("Erreur: La pile est vide\n");
-        exit(1);
+void push(Stack *stack, int item) {
+    if (isFull(stack)) {
+        printf("Stack overflow! Cannot push more elements.\n");
+        return;
     }
-    Node* temp = stack->top;
-    char *data = temp->data;
-    stack->top = stack->top->next;
-    free(temp);
-    return data;
+    stack->items[++stack->top] = item;
 }
 
-// Fonction pour afficher le sommet de la pile
-char* peek(Stack *stack) {
+int pop(Stack *stack) {
     if (isEmpty(stack)) {
-        printf("Erreur: La pile est vide\n");
-        exit(1);
+        printf("Stack underflow! Cannot pop from an empty stack.\n");
+        return -1; // You might handle this differently depending on your requirements
     }
-    return stack->top->data;
+    return stack->items[stack->top--];
+}
+
+int peek(Stack *stack) {
+    if (isEmpty(stack)) {
+        printf("Stack is empty! Cannot peek.\n");
+        return -1; // You might handle this differently depending on your requirements
+    }
+    return stack->items[stack->top];
 }
 
 
 
+// #################################################################
 
 
 

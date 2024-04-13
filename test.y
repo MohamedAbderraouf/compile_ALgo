@@ -13,6 +13,13 @@ char current_function_name[50];
 functions_hash_list *ts;
 func_tab* tmp_func_tab;
 int count_params =1;
+int count_ifs = 1 , count_while =1 , count_dofori = 1;
+
+Stack if_stack;
+Stack while_stack;
+Stack dofori_stack;
+
+
 
 int param_number,local_number;
 int label_number = 0;
@@ -48,9 +55,9 @@ void yyerror(const char* s){
 %token ADD SUB MULT DIV;
 %token DIF AND EGAL OR NOT INF INF_EGAL SUP SUP_EGAL;
 
-%left EGAL DIF INF INF_EGAL SUP SUP_EGAL
 %left OR
 %left AND
+%left EGAL DIF INF INF_EGAL SUP SUP_EGAL
 %left NOT
 %left ADD SUB
 %left MULT DIV
@@ -184,12 +191,39 @@ OUT_COMMAND : OUT OPEN_ACCO EXPR CLOSE_ACCO
         pile = push_pile_parsing(pile , "" , nt_OUT_COMMAND);
     }
 
+
+
+DOFORI_END:
+    {
+        int t  = pop(&dofori_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp ,  nt_END_DOFORI_COMMAND);
+        push(&dofori_stack, t);
+        
+    }
+DOFORI_BEGIN:
+    {
+        int t  = count_dofori;
+        count_dofori++;
+        push(&dofori_stack, t);
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp ,  nt_BEGIN_DOFORI_COMMAND);
+
+    }
 // separation pour la detection de l'idf avant de rantree dans les commands 
-CONTINUATION_DOFORI : OPEN_ACCO EXPR CLOSE_ACCO OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION OD
+CONTINUATION_DOFORI : OPEN_ACCO EXPR DOFORI_BEGIN CLOSE_ACCO OPEN_ACCO EXPR DOFORI_END CLOSE_ACCO COMMANDS_TRANSITION OD
+    {    
+        int t  = pop(&dofori_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp ,  nt_DOFORI_COMMAND);
+    }
+
 DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO CONTINUATION_DOFORI  
     {
-
-        pile = push_pile_parsing(pile , $3 , nt_DOFORI_COMMAND);
+        pile = push_pile_parsing(pile , $3 , nt_START_DOFORI_COMMAND);
 
         if(element_exists(tmp_func_tab->table , $3)==0){
             function_add_var(&tmp_func_tab , $3 , LOCAL_VAR , count_params++ );
@@ -212,25 +246,128 @@ DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO CONTINUATION_DOFORI
 
     }
 
-
-DOWHILE_COMMAND: DOWHILE OPEN_ACCO EXPR  CLOSE_ACCO COMMANDS_TRANSITION OD 
+END_WHILE:
     {
-        pile = push_pile_parsing(pile , "" , nt_DOWHILE_COMMAND);
+        int t  = pop(&while_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_END_DOWHILE_COMMAND);
+        push(&while_stack, t);
     }
+
+START_WHILE:
+    {
+        int t  = count_while;
+        count_while++;
+        push(&while_stack, t);
+
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_START_DOWHILE_COMMAND);
+    }
+
+DOWHILE_COMMAND: DOWHILE OPEN_ACCO START_WHILE EXPR END_WHILE CLOSE_ACCO COMMANDS_TRANSITION OD 
+    {
+        int t  = pop(&while_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_DOWHILE_COMMAND);
+    }
+
+
 
 RETURN_COMMAND : RETURN OPEN_ACCO EXPR CLOSE_ACCO 
     {
         pile = push_pile_parsing(pile , "" , nt_RETURN_COMMAND);
     }
 
-IF_COMMAND : IF OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION FI 
+
+//################################################################
+//########### IF && IF-ELSE
+
+
+/* ELSE_SETECTION: ELSE{
+        int t  = count_ifs;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_ELSE_DETECTION);
+
+} */
+/* ELSE_TRANSITION: FI 
     {
-        pile = push_pile_parsing(pile , "" , nt_IF_COMMAND);
+    int t  = count_ifs;count_ifs++;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_IF_COMMAND);
+    } */
+
+
+/* | ELSE  COMMANDS_TRANSITION FI
+    {
+    int t  = count_ifs;count_ifs++;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_IF_COMMAND);
+    } */
+
+START_COMMANDS_IF: 
+    {
+        int t  = count_ifs;
+        count_ifs++;
+        push(&if_stack, t);
+
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_START_IF_COMMAND);
+    
     }
-| IF OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION ELSE  COMMANDS_TRANSITION FI 
+
+ELSE_DETECTION:
+    {
+
+        int t  = pop(&if_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_ELSE_DETECTION);
+        push(&if_stack, t);
+    }
+ELSE_TRANSITION: FI 
+    {   
+        
+        int t  = pop(&if_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_IF_COMMAND);
+    }
+| ELSE_DETECTION ELSE COMMANDS_TRANSITION FI 
+    {
+        int t  = pop(&if_stack) ;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_IF_ELSE_COMMAND);
+    }
+
+IF_COMMAND : IF OPEN_ACCO EXPR CLOSE_ACCO START_COMMANDS_IF COMMANDS_TRANSITION ELSE_TRANSITION  
+    {
+    }
+
+/* IF_ELSE_COMMAND: IF OPEN_ACCO EXPR CLOSE_ACCO START_COMMANDS_IF_ELSE  COMMANDS_TRANSITION ELSE  COMMANDS_TRANSITION FI
+    {
+        int t  = count_ifs;count_ifs++;
+        char tmp[20];
+        intToString(t,tmp);
+        pile = push_pile_parsing(pile , tmp , nt_IF_ELSE_COMMAND);
+    } */
+
+
+
+/* | IF OPEN_ACCO EXPR CLOSE_ACCO COMMANDS_TRANSITION  
     {
         pile = push_pile_parsing(pile , "" , nt_IF_ELSE_COMMAND);
-    }
+    } */
+
+
+//#########################################################################################
 
 CALLS_TRANSITION : CALLS 
     {
@@ -447,12 +584,12 @@ EXPR: EXPR ADD EXPR
 
 int notSameType(TYPE_SYNTH a , TYPE_SYNTH b , TYPE_SYNTH c){
 
-    return 1? ((a==NOT_INITIALIZED || a==c) && (b==NOT_INITIALIZED || b==c) ):0;
+    return 1;
 }
 
 int notSameType2(TYPE_SYNTH a , TYPE_SYNTH b){
 
-    return 1? ((a==b && a!=ERR_T) || (a!=b && (b==NOT_INITIALIZED || a==NOT_INITIALIZED) && a!=ERR_T && b!=ERR_T) ):0;
+    return 1;
 }
 
 void intToString(int number, char str[]) {
@@ -489,6 +626,8 @@ void intToString(int number, char str[]) {
 int main(void) {
 
     // hash list table des symboles 
+    initialize(&if_stack);
+
     ts = NULL;
     hlist_init(&ts);
 
@@ -505,6 +644,7 @@ int main(void) {
 
     head = pop_pile_parsing(head);
 
+    
     make_asm(&head , ts );
 
     /* parcourir_pile(head); */
