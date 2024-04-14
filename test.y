@@ -221,12 +221,11 @@ CONTINUATION_DOFORI : OPEN_ACCO EXPR DOFORI_BEGIN CLOSE_ACCO OPEN_ACCO EXPR DOFO
         pile = push_pile_parsing(pile , tmp ,  nt_DOFORI_COMMAND);
     }
 
-DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO CONTINUATION_DOFORI  
-    {
-        pile = push_pile_parsing(pile , $3 , nt_START_DOFORI_COMMAND);
-
-        if(element_exists(tmp_func_tab->table , $3)==0){
-            function_add_var(&tmp_func_tab , $3 , LOCAL_VAR , count_params++ );
+IDF_FOR:IDF 
+{
+        pile = push_pile_parsing(pile , $1 , nt_START_DOFORI_COMMAND);
+        if(element_exists(tmp_func_tab->table , $1)==0){
+            function_add_var(&tmp_func_tab , $1 , LOCAL_VAR , count_params++ );
             tmp_func_tab->nbr_locals++;
         }
         
@@ -236,13 +235,19 @@ DOFORI_COMMAND : DOFORI OPEN_ACCO IDF CLOSE_ACCO CONTINUATION_DOFORI
             exit(EXIT_FAILURE);
         }
         
-        sym_tab* sym =  function_get_var(tmp_func_tab,$3);
+        sym_tab* sym =  function_get_var(tmp_func_tab,$1);
         if (sym == NULL) {
-            printf("cant find Variable %s\n" , $3);
+            printf("cant find Variable %s\n" , $1);
             exit(EXIT_FAILURE);
         }
 
         sym->type_synth = NUM_T;
+
+}
+DOFORI_COMMAND : DOFORI OPEN_ACCO IDF_FOR CLOSE_ACCO CONTINUATION_DOFORI  
+    {
+
+        
 
     }
 

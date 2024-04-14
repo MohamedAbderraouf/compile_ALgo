@@ -177,12 +177,18 @@ int make_asm(pile_parsing_t** p,functions_hash_list *ts){
                 end_expr_while(atoi(current_p->id));
                 break;
 
+
+            case nt_START_DOFORI_COMMAND:
+                start_dofori(ts , current_p->id , function_name_current);
+                break;
             case nt_DOFORI_COMMAND:
-                // add functions
+                finish_dofori(atoi(current_p->id));
                 break;
             case nt_BEGIN_DOFORI_COMMAND:
+                begin_dofori(atoi(current_p->id));
                 break;
             case nt_END_DOFORI_COMMAND:
+                end_dofori(atoi(current_p->id));
                 break;
 
 
@@ -220,6 +226,74 @@ char* create_label(char* label_name, int number){
     }
     return buffer;
 }
+
+
+void start_dofori(functions_hash_list *ts  , char *varname , char *function_name){
+    int position;
+    func_tab *tmp = hlist_get_function(ts,function_name);
+    if (tmp == NULL){
+        printf("Erreur : function %s not found\n",function_name);
+        exit(EXIT_FAILURE);
+    }
+    
+    sym_tab *tmp_sym = function_get_var(tmp,varname);
+    
+    if (tmp_sym->type == LOCAL_VAR){
+        position = get_place_local_in_stack(tmp_sym->num_var);
+    }
+    else if (tmp_sym->type == PARAM_VAR){
+        position = get_place_param_in_stack(tmp_sym->num_var , tmp->nbr_locals);
+    }
+    
+    printf(";#####################_start_of_dofori\n");
+    printf("\tcp bx,bp\n");
+    printf("\tconst cx,%d\n",position);
+    printf("\tsub bx,cx\n");
+    printf("\tpush bx\n");
+
+}
+
+
+void end_dofori(int nbr_dofori){
+    
+    printf("\tpop dx\n");
+    printf("\tpop bx\n");
+    printf("\tpush bx\n");
+
+    printf("\tloadw ax,bx\n");
+    printf("\tconst cx,end_dofori_%d\n",nbr_dofori);
+    printf("\tsless dx,ax\n");
+    printf("\tjmpc cx\n");
+
+}
+
+void begin_dofori(int nbr_dofori){
+    printf(";_begin_of_dofori..................\n");
+    printf("\tpop ax\n");
+    printf("\tpop bx\n");
+    printf("\tpush bx\n");
+    printf("\tstorew ax,bx\n");
+    printf(":start_dofori_%d\n",nbr_dofori);
+
+}
+
+void finish_dofori(int nbr_dofori){
+    
+    printf("\tpop bx\n");
+    printf("\tloadw ax,bx\n");
+    printf("\tconst cx,1\n");
+    printf("\tadd ax,cx\n");
+    printf("\tstorew ax,bx\n");
+    printf("\tpush bx\n");
+
+    printf("\tconst bx,start_dofori_%d\n",nbr_dofori);
+    printf("\tjmp bx\n");
+    printf(":end_dofori_%d\n" , nbr_dofori);
+    printf(";this next pop is for the address of the iterator\n");
+    printf("\tpop bx\n");
+    
+}
+
 
 void start_while(int nbr_while){
     printf(":start_while_%d\n",nbr_while);

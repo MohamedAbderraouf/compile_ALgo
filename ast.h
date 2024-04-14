@@ -47,6 +47,7 @@ typedef enum {
     ,nt_DOFORI_COMMAND
     ,nt_BEGIN_DOFORI_COMMAND
     ,nt_END_DOFORI_COMMAND
+    ,nt_START_DOFORI_COMMAND
 
     ,t_IDF_PARAM_FUNCTION
     ,t_IDF
@@ -143,6 +144,10 @@ void end_while(int nbr_while);
 void end_expr_while(int nbr_while);
 
 
+void start_dofori(functions_hash_list *ts  , char *varname , char *function_name);
+void end_dofori(int nbr_dofori);
+void begin_dofori(int nbr_dofori);
+void finish_dofori(int nbr_dofori);
 
 
 
